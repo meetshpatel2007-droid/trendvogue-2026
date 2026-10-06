@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/server/lib/prisma";
 import { createOrderSchema } from "@/server/schemas/order.schema";
 import { calculateDeliveryEstimate } from "@/server/lib/delivery-estimate";
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve shipping address
-    let addressSnap: Record<string, unknown>;
+    let addressSnap: Prisma.InputJsonObject;
     let pincode: string;
 
     if (parsed.data.addressId) {

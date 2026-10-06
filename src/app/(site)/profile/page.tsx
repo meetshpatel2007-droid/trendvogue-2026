@@ -225,15 +225,9 @@ export default function ProfilePage() {
           {addingAddress && (
             <form onSubmit={handleAddrSubmit(onAddAddress)} style={{ padding: "1.25rem", background: "var(--surface-2)", borderRadius: "var(--radius-md)", marginBottom: "1.5rem" }}>
               <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem" }}>New Address</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                <div className="form-group">
-                  <label className="form-label">Recipient Name *</label>
-                  <input {...regAddr("name")} placeholder="Full Name" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Phone Number *</label>
-                  <input {...regAddr("phone")} placeholder="10-digit phone" />
-                </div>
+              <div className="form-group" style={{ marginBottom: "0.75rem" }}>
+                <label className="form-label">Phone Number *</label>
+                <input {...regAddr("phone")} placeholder="10-digit phone" />
               </div>
               <div className="form-group" style={{ marginBottom: "0.75rem" }}>
                 <label className="form-label">Address Line 1 *</label>
@@ -275,7 +269,7 @@ export default function ProfilePage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
               {addresses.map((a) => (
                 <div key={a.id} style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", position: "relative" }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.35rem" }}>{a.name}</div>
+                  <div style={{ fontWeight: 700, fontSize: "0.9rem", marginBottom: "0.35rem" }}>{a.isDefault ? "Default Address" : "Address"}</div>
                   <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
                     {a.line1}<br />
                     {a.line2 && <>{a.line2}<br /></>}

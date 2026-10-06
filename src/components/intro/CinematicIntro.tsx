@@ -255,7 +255,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
           height: "50%",
           background: "#000000",
           transformOrigin: "top",
-          scaleY: 0,
+          transform: "scaleY(0)",
           zIndex: 10,
         }}
       />
@@ -269,7 +269,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
           height: "50%",
           background: "#000000",
           transformOrigin: "bottom",
-          scaleY: 0,
+          transform: "scaleY(0)",
           zIndex: 10,
         }}
       />

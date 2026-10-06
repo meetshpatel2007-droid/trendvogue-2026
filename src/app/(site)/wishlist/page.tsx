@@ -10,7 +10,7 @@ import { formatCurrency, calculateDiscount } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function WishlistPage() {
-  const { items, removeItem, clearWishlist } = useWishlistStore();
+  const { items, remove: removeItem, clear: clearWishlist } = useWishlistStore();
   const addItem = useCartStore((s) => s.addItem);
 
   const handleMoveToCart = (item: any) => {
