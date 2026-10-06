@@ -459,7 +459,7 @@ Base path: `/api`. Auth: **Public** = no login needed, **User** = any logged-in 
 | Method | Endpoint | Auth | Details |
 | :--- | :--- | :--- | :--- |
 | GET | `/orders` | User / Admin | Users see their own orders; admins see all. `page`, `limit` (default 10). |
-| POST | `/orders` | User | `paymentMethod` (`COD` \| `DUMMY_ONLINE`) and either `addressId` or `newAddress {line1, line2?, city, state, pincode, phone}`. See §11.2. Returns the order and a delivery estimate. |
+| POST | `/orders` | User | `paymentMethod` (`COD` \| `DUMMY_ONLINE`), `items [{productId, size, color?, quantity}]` (the browser cart) and either `addressId` or `newAddress {line1, line2?, city, state, pincode, phone}`. See §11.2. Returns the order and a delivery estimate. |
 | GET | `/orders/:id` | Owner / Admin | Order with items, product info and customer contact. |
 | PATCH | `/orders/:id` | Owner / Admin | `status`. Admins may set any status. Customers may only set `CANCELLED`, and only while the status is `ORDERED` or `PACKED`. Cancelling restores stock. |
 
@@ -501,7 +501,7 @@ All storefront pages share a layout with the **Navbar** (search, categories, car
 | `/shop`, `/shop/[category]` | Catalogue | `/shop/[category]` redirects to `/shop?category=<slug>`. Search, category, price-range, size and colour filters; sort; pagination. Uses `GET /api/products`. |
 | `/product/[id]` | Product detail | Image gallery, size/colour selection, price/MRP/discount, stock, add to cart / wishlist, reviews. |
 | `/cart` | Cart | Edit quantities (capped at stock), remove items, subtotal. |
-| `/checkout` | Checkout | Choose a saved address or enter a new one, choose COD or online (simulated), place order, see the estimated delivery date. |
+| `/checkout` | Checkout | Step 1: choose a saved address or enter a new one (live delivery estimate from the PIN code). Step 2: choose **Cash on Delivery** or **Card Payment**. Card Payment shows demo card fields (number, name, expiry, CVV) with no validation; they stay in component memory only, are never sent to the server and are never saved (`autoComplete="off"`). Then place the order and see the confirmation with the expected delivery date. |
 | `/orders` | Order history | List of the customer's orders. |
 | `/orders/[id]` | Order detail | **DeliveryTracker** stepper (Ordered → Packed → Shipped → Out for delivery → Delivered), items, address snapshot, cancel button where allowed. |
 | `/wishlist` | Wishlist | Saved products (client-side store); move to cart (adds size M, quantity 1), remove one, clear all. |
@@ -566,12 +566,12 @@ A deterministic algorithm (no external API):
 
 ### 11.2 Order placement (`POST /api/orders`)
 1. Require login; validate the body.
-2. Load the user's cart lines from the database; reject an empty cart.
-3. **Stock check:** reject if any product's `stockQty` is below the requested quantity.
+2. Read the cart lines sent by the browser (`items`); reject an empty list. Load those products from the database; reject missing or inactive products. **Prices always come from the database**, never from the client.
+3. **Stock check:** add up the quantity per product (the same product can be in the cart in several sizes) and reject if `stockQty` is too low.
 4. Resolve the address: a saved address (must belong to the user) or a new one; store it as a JSON snapshot.
 5. Calculate the delivery estimate from the PIN code.
-6. Total = Σ (current product price × quantity).
-7. **Atomic transaction:** create the `Order` with its `OrderItem`s (price captured), set payment status (`COD` → `PENDING`, online → `PAID`), decrement each product's stock, clear the cart. If any step fails, nothing is saved.
+6. Total = Σ (database price × quantity) + delivery fee (free at ₹999 or more, otherwise ₹99 — `getDeliveryFee()` in `src/lib/utils.ts`, shared with the checkout page).
+7. **Atomic transaction:** decrement stock with a guard (`stockQty >= quantity`, so two simultaneous orders cannot oversell — if the guard fails the API returns 409 and nothing is saved), create the `Order` with its `OrderItem`s (price captured), set payment status (`COD` → `PENDING`, card → `PAID`) and clear any server-side cart lines. If any step fails, nothing is saved.
 
 ### 11.3 Order lifecycle
 ```
@@ -708,7 +708,7 @@ These were found by reviewing the code and are listed so the report can describe
 
 | # | Area | Issue | Effect |
 | :--- | :--- | :--- | :--- |
-| 1 | Cart → checkout | The cart lives only in the browser (`useCartStore`, `localStorage`). No page calls `/api/cart`, but `POST /api/orders` reads the cart from the **database**. | Checkout fails with "Your cart is empty" unless the cart is synced to the server first. |
+| 1 | Cart → checkout (fixed) | Previously `POST /api/orders` read an always-empty database cart, the card option sent an invalid value (`ONLINE`), a new address was read from the wrong form, and the ₹99 delivery fee was shown but not charged. Checkout now sends its cart items, the server validates them, and the charged total matches the page. | Resolved. The server-side `/api/cart` endpoints remain unused. |
 | 2 | Login redirect (fixed) | Previously, `router.push` after login could reuse pages prefetched while logged out (cached redirects to `/login`), and `fetchMe()` read the wrong response field. Login, register and logout now do a full page load, `fetchMe()` reads `data.user` correctly, and the `?redirect=` parameter only accepts same-site paths. | Resolved. |
 | 3 | Admin dashboard | The 7-day revenue SQL in `/api/admin/stats` uses `created_at` and `total_amount`, but the real columns are `"createdAt"` and `"totalAmount"`. | The stats endpoint errors, so the dashboard cannot load. |
 | 4 | Token refresh | A refresh token is issued, but no endpoint uses it. | Users are effectively logged out after 15 minutes. |
@@ -719,8 +719,8 @@ These were found by reviewing the code and are listed so the report can describe
 | 9 | Seed command | `package.json` has no `prisma.seed` entry, so `npx prisma db seed` does nothing. | Use `npx tsx prisma/seed.ts`. |
 | 10 | Image uploads | Files are written to `public/uploads` on the server's disk. | Uploads are lost on Vercel (read-only, ephemeral filesystem); cloud storage is needed. |
 | 11 | Email | Reset links are only logged to the console. | Users cannot reset passwords in production without an email service. |
-| 12 | Payments | `DUMMY_ONLINE` is marked `PAID` immediately. | No real payment processing. |
-| 13 | Concurrency | Stock is checked before the transaction and decremented without a `stockQty >= qty` guard. | Two simultaneous orders could oversell the last unit. |
+| 12 | Payments | Card Payment is a demo: any card details are accepted, nothing is charged, card data is never sent or stored, and the order is marked `PAID` immediately. | No real payment processing. |
+| 13 | Concurrency (fixed) | Stock is now decremented with a `stockQty >= qty` guard inside the order transaction. | Resolved. |
 | 14 | Testing | No unit, integration or end-to-end tests. | Regressions must be caught manually. |
 | 15 | Rate limiting | No rate limiting on login, register or forgot-password. | Brute-force attempts are not throttled. |
 | 16 | Admin order filter | `/admin/orders` sends a `status` query parameter, but `GET /api/orders` ignores it. | The status filter has no effect. |

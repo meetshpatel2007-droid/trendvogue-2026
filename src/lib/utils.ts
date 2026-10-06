@@ -35,6 +35,12 @@ export function calculateDiscount(price: number, mrp: number): number {
   return Math.round(((mrp - price) / mrp) * 100);
 }
 
+// Free delivery on orders of ₹999 or more, otherwise a flat ₹99.
+// Shared by checkout (display) and the orders API (charged total).
+export function getDeliveryFee(subtotal: number): number {
+  return subtotal >= 999 ? 0 : 99;
+}
+
 export function truncate(str: string, n: number): string {
   return str.length > n ? str.slice(0, n - 1) + "…" : str;
 }

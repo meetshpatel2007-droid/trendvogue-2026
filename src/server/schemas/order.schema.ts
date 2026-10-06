@@ -17,6 +17,18 @@ export const createOrderSchema = z.object({
     })
     .optional(),
   paymentMethod: z.enum(["COD", "DUMMY_ONLINE"]),
+  // The cart lives in the browser, so the client sends its lines; the server
+  // re-reads price and stock from the database and never trusts client prices.
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        size:      z.string().min(1),
+        color:     z.string().optional(),
+        quantity:  z.number().int().min(1).max(50),
+      })
+    )
+    .min(1, "Your cart is empty"),
 }).refine(
   (data) => data.addressId || data.newAddress,
   { message: "Either select a saved address or enter a new one" }

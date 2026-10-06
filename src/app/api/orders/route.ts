@@ -5,6 +5,9 @@ import { createOrderSchema } from "@/server/schemas/order.schema";
 import { calculateDeliveryEstimate } from "@/server/lib/delivery-estimate";
 import { getServerUser } from "@/lib/auth";
 import { apiError, apiSuccess, paginate, setPaginationMeta } from "@/lib/api-helpers";
+import { getDeliveryFee } from "@/lib/utils";
+
+class OutOfStockError extends Error {}
 
 export async function GET(req: NextRequest) {
   try {
@@ -58,21 +61,29 @@ export async function POST(req: NextRequest) {
     const parsed = createOrderSchema.safeParse(body);
     if (!parsed.success) return apiError(parsed.error.errors[0].message, 422);
 
-    // Get cart items
-    const cartItems = await prisma.cartItem.findMany({
-      where:   { userId: authUser.sub },
-      include: { product: true },
+    // Load the products for the submitted cart lines (prices come from the DB)
+    const { items } = parsed.data;
+    const products = await prisma.product.findMany({
+      where:  { id: { in: [...new Set(items.map((i) => i.productId))] } },
+      select: { id: true, name: true, price: true, stockQty: true, isActive: true },
     });
+    const productById = new Map(products.map((p) => [p.id, p]));
 
-    if (cartItems.length === 0) return apiError("Your cart is empty", 400);
+    // Total quantity per product (the same product can appear in several sizes)
+    const qtyByProduct = new Map<string, number>();
+    for (const item of items) {
+      const product = productById.get(item.productId);
+      if (!product || !product.isActive) {
+        return apiError("An item in your cart is no longer available", 400);
+      }
+      qtyByProduct.set(item.productId, (qtyByProduct.get(item.productId) ?? 0) + item.quantity);
+    }
 
     // Verify stock availability
-    for (const item of cartItems) {
-      if (item.product.stockQty < item.quantity) {
-        return apiError(
-          `"${item.product.name}" only has ${item.product.stockQty} in stock`,
-          400
-        );
+    for (const [productId, qty] of qtyByProduct) {
+      const product = productById.get(productId)!;
+      if (product.stockQty < qty) {
+        return apiError(`"${product.name}" only has ${product.stockQty} in stock`, 400);
       }
     }
 
@@ -97,14 +108,25 @@ export async function POST(req: NextRequest) {
     // Calculate delivery estimate
     const delivery = calculateDeliveryEstimate(pincode);
 
-    // Compute total
-    const totalAmount = cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
+    // Compute total (items + delivery fee, matching what checkout displays)
+    const subtotal = items.reduce(
+      (sum, item) => sum + productById.get(item.productId)!.price * item.quantity,
       0
     );
+    const totalAmount = subtotal + getDeliveryFee(subtotal);
 
     // Create order in transaction
     const order = await prisma.$transaction(async (tx) => {
+      // Reduce stock first; the stockQty guard stops two simultaneous orders
+      // from overselling the last units (a failed guard rolls everything back)
+      for (const [productId, qty] of qtyByProduct) {
+        const { count } = await tx.product.updateMany({
+          where: { id: productId, stockQty: { gte: qty } },
+          data:  { stockQty: { decrement: qty } },
+        });
+        if (count === 0) throw new OutOfStockError(productById.get(productId)!.name);
+      }
+
       const newOrder = await tx.order.create({
         data: {
           userId:           authUser.sub,
@@ -117,12 +139,12 @@ export async function POST(req: NextRequest) {
           estimatedDelivery: delivery.estimatedDelivery,
           pincodeDeliveryTier: delivery.tier,
           items: {
-            create: cartItems.map((item) => ({
+            create: items.map((item) => ({
               productId: item.productId,
               size:      item.size,
               color:     item.color ?? "",
               quantity:  item.quantity,
-              price:     item.product.price,
+              price:     productById.get(item.productId)!.price,
             })),
           },
         },
@@ -135,15 +157,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Reduce stock
-      for (const item of cartItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data:  { stockQty: { decrement: item.quantity } },
-        });
-      }
-
-      // Clear cart
+      // Clear any server-side cart lines
       await tx.cartItem.deleteMany({ where: { userId: authUser.sub } });
 
       return newOrder;
@@ -160,6 +174,9 @@ export async function POST(req: NextRequest) {
       },
     }, 201);
   } catch (error) {
+    if (error instanceof OutOfStockError) {
+      return apiError(`"${error.message}" just went out of stock`, 409);
+    }
     console.error("[ORDERS POST]", error);
     return apiError("Failed to place order. Please try again.", 500);
   }

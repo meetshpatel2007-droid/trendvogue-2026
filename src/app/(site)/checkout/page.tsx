@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,35 +10,51 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, CreditCard, Truck, ArrowLeft, Loader2, ShieldCheck, MapPin } from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
 import { useAuthStore } from "@/store/auth.store";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getDeliveryFee } from "@/lib/utils";
 import { calculateDeliveryEstimate } from "@/server/lib/delivery-estimate";
 import { toast } from "sonner";
 
+// Same rules as the server's order schema, so errors show inline
 const addressFormSchema = z.object({
-  name:    z.string().min(2),
-  phone:   z.string().min(10).max(10),
-  line1:   z.string().min(5),
+  phone:   z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
+  line1:   z.string().min(5, "Address is required"),
   line2:   z.string().optional(),
-  city:    z.string().min(2),
-  state:   z.string().min(2),
+  city:    z.string().min(2, "City is required"),
+  state:   z.string().min(2, "State is required"),
   pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
 });
 
 type AddressForm = z.infer<typeof addressFormSchema>;
 
 const PAYMENT_METHODS = [
-  { id: "COD",    label: "Cash on Delivery",   desc: "Pay when you receive",      icon: "💵" },
-  { id: "ONLINE", label: "Online Payment",      desc: "Credit/Debit/UPI (mocked)", icon: "💳" },
-];
+  { id: "COD",          label: "Cash on Delivery", desc: "Pay when you receive",           icon: "💵" },
+  { id: "DUMMY_ONLINE", label: "Card Payment",     desc: "Demo card — no real charge", icon: "💳" },
+] as const;
+
+type PaymentMethod = (typeof PAYMENT_METHODS)[number]["id"];
+
+// Demo card details: kept only in this component's memory, never validated,
+// never sent to the server and never saved anywhere.
+const EMPTY_CARD = { number: "", name: "", expiry: "", cvv: "" };
+
+const formatCardNumber = (v: string) =>
+  v.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
+
+const formatExpiry = (v: string) => {
+  const digits = v.replace(/\D/g, "").slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+};
 
 export default function CheckoutPage() {
-  const router  = useRouter();
-  const user    = useAuthStore((s) => s.user);
+  const user       = useAuthStore((s) => s.user);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
   const { items, getSubtotal, clearCart } = useCartStore();
   const [step, setStep]                   = useState<1 | 2 | 3>(1);
-  const [paymentMethod, setPayment]       = useState("COD");
+  const [paymentMethod, setPayment]       = useState<PaymentMethod>("COD");
+  const [card, setCard]                   = useState(EMPTY_CARD);
   const [savedAddresses, setSaved]        = useState<any[]>([]);
   const [selectedAddrId, setSelectedAddr] = useState<string | null>(null);
+  const [newAddress, setNewAddress]       = useState<AddressForm | null>(null);
   const [delivery, setDelivery]           = useState<any>(null);
   const [placing, setPlacing]             = useState(false);
   const [placedOrder, setPlacedOrder]     = useState<any>(null);
@@ -77,8 +92,18 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  const subtotal = getSubtotal();
-  const isFreeShipping = subtotal >= 999;
+  const subtotal    = getSubtotal();
+  const deliveryFee = getDeliveryFee(subtotal);
+  const total       = subtotal + deliveryFee;
+
+  // Wait for the session check instead of flashing "Please login"
+  if (!isHydrated) {
+    return (
+      <div className="container empty-state" style={{ paddingTop: "4rem" }}>
+        <Loader2 size={28} className="animate-spin" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -165,27 +190,34 @@ export default function CheckoutPage() {
     );
   }
 
-  const onSubmitAddress = async (data: AddressForm) => {
+  const onSubmitAddress = (data: AddressForm) => {
+    // The form unmounts on step 2, so keep its values for placing the order
+    setNewAddress(data);
     setStep(2);
   };
 
   const handlePlaceOrder = async () => {
     setPlacing(true);
     try {
-      const body: Record<string, unknown> = { paymentMethod };
+      // Card details are deliberately NOT included — the demo card is never sent
+      const body: Record<string, unknown> = {
+        paymentMethod,
+        items: items.map((i) => ({
+          productId: i.id,
+          size:      i.size,
+          color:     i.color,
+          quantity:  i.quantity,
+        })),
+      };
 
       if (selectedAddrId) {
         body.addressId = selectedAddrId;
+      } else if (newAddress) {
+        body.newAddress = newAddress;
       } else {
-        // Will use form values
-        const formVals = (document.querySelector("form") as HTMLFormElement | null);
-        const formData: Record<string, string> = {};
-        if (formVals) {
-          for (const el of Array.from(formVals.elements) as HTMLInputElement[]) {
-            if (el.name) formData[el.name] = el.value;
-          }
-        }
-        body.newAddress = formData;
+        toast.error("Please add a delivery address");
+        setStep(1);
+        return;
       }
 
       const res = await fetch("/api/orders", {
@@ -199,6 +231,7 @@ export default function CheckoutPage() {
       if (!res.ok) { toast.error(json.error ?? "Failed to place order"); return; }
 
       clearCart();
+      setCard(EMPTY_CARD);
       setPlacedOrder(json.data);
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -258,7 +291,7 @@ export default function CheckoutPage() {
                       <label key={addr.id} style={{ display: "flex", gap: "0.75rem", padding: "0.875rem", border: `2px solid ${selectedAddrId === addr.id ? "var(--accent)" : "var(--border)"}`, borderRadius: "var(--radius-lg)", cursor: "pointer", transition: "border-color 0.2s" }}>
                         <input type="radio" name="savedAddr" value={addr.id} checked={selectedAddrId === addr.id} onChange={() => setSelectedAddr(addr.id)} style={{ marginTop: "3px" }} />
                         <div style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.7 }}>
-                          <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{addr.name}</div>
+                          <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{addr.isDefault ? "Default Address" : "Saved Address"}</div>
                           {addr.line1}, {addr.city}, {addr.state} – {addr.pincode}
                           <br />📞 {addr.phone}
                         </div>
@@ -279,11 +312,6 @@ export default function CheckoutPage() {
               {!selectedAddrId && (
                 <form id="address-form" onSubmit={handleSubmit(onSubmitAddress)}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-                      <label className="form-label">Full Name *</label>
-                      <input {...register("name")} placeholder="Rahul Sharma" />
-                      {errors.name && <span className="form-error">{errors.name.message}</span>}
-                    </div>
                     <div className="form-group" style={{ gridColumn: "1 / -1" }}>
                       <label className="form-label">Phone *</label>
                       <input {...register("phone")} placeholder="10-digit mobile number" />
@@ -365,6 +393,66 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Demo card fields — no validation, not sent, not stored */}
+              <AnimatePresence>
+                {paymentMethod === "DUMMY_ONLINE" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <div style={{ marginTop: "1rem", padding: "1.25rem", background: "var(--surface-2)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                          <label className="form-label">Card Number</label>
+                          <input
+                            value={card.number}
+                            onChange={(e) => setCard({ ...card, number: formatCardNumber(e.target.value) })}
+                            placeholder="4111 1111 1111 1111"
+                            inputMode="numeric"
+                            autoComplete="off"
+                          />
+                        </div>
+                        <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                          <label className="form-label">Name on Card</label>
+                          <input
+                            value={card.name}
+                            onChange={(e) => setCard({ ...card, name: e.target.value })}
+                            placeholder="Rahul Sharma"
+                            autoComplete="off"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Expiry</label>
+                          <input
+                            value={card.expiry}
+                            onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })}
+                            placeholder="MM/YY"
+                            inputMode="numeric"
+                            autoComplete="off"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">CVV</label>
+                          <input
+                            type="password"
+                            value={card.cvv}
+                            onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                            placeholder="•••"
+                            inputMode="numeric"
+                            autoComplete="off"
+                          />
+                        </div>
+                      </div>
+                      <p style={{ marginTop: "0.875rem", fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <ShieldCheck size={14} /> Demo payment — any details work. Nothing is charged, and card details are never sent or saved.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
                 <button onClick={() => setStep(1)} className="btn btn-ghost">
                   <ArrowLeft size={16} /> Back
@@ -373,7 +461,7 @@ export default function CheckoutPage() {
                   {placing ? (
                     <><Loader2 size={18} className="animate-spin" /> Placing Order...</>
                   ) : (
-                    <><ShieldCheck size={18} /> Place Order ({formatCurrency(subtotal)})</>
+                    <><ShieldCheck size={18} /> {paymentMethod === "COD" ? "Place Order" : "Pay"} ({formatCurrency(total)})</>
                   )}
                 </button>
               </div>
@@ -406,14 +494,14 @@ export default function CheckoutPage() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.375rem" }}>
                 <span style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>Delivery</span>
-                <span style={{ color: "var(--success)", fontWeight: 600 }}>
-                  {isFreeShipping ? "Free" : "₹99"}
+                <span style={{ color: deliveryFee === 0 ? "var(--success)" : "inherit", fontWeight: 600 }}>
+                  {deliveryFee === 0 ? "Free" : formatCurrency(deliveryFee)}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--border)", paddingTop: "0.75rem", marginTop: "0.5rem" }}>
                 <span style={{ fontWeight: 800, fontFamily: "var(--font-display)" }}>Total</span>
                 <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.15rem" }}>
-                  {formatCurrency(subtotal + (isFreeShipping ? 0 : 99))}
+                  {formatCurrency(total)}
                 </span>
               </div>
             </div>
