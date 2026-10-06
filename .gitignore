@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Environment variable files (NEVER COMMIT ACTUAL SECRETS)
+.env
+.env*.local
+.env.local
+.env.development
+.env.test
+.env.production
+frontend/.env
+frontend/.env.local
+VERCEL_ENV_VARIABLES.txt
+
+# Production build outputs
+.next/
+out/
+build/
+dist/
+
+# Debug and runtime logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Prisma generated engines
+prisma/client/
+frontend/prisma/migrations/.temp/
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# OS Temporary files
+*.tmp
+*.temp
+.zip

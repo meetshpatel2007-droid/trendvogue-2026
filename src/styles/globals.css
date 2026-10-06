@@ -1,0 +1,441 @@
+/* ==========================================================================
+   Trend Vogue — Luxury Fashion Design Token System
+   Editorial Boutique Polish (AMOLED Dark + Clean Light Theme)
+   ========================================================================== */
+
+@import "tailwindcss";
+
+/* ─── Google Fonts (Editorial Luxury Pairing) ─────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap");
+
+/* ─── Dark Theme (default / AMOLED) ───────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg:            #0A0D10;
+  --bg-secondary:  #06080A;
+  --surface:       #11161D;
+  --surface-2:     #18202A;
+  --surface-3:     #212B38;
+  --border:        rgba(255, 255, 255, 0.09);
+  --border-light:  rgba(255, 255, 255, 0.05);
+  --border-glass:  rgba(255, 255, 255, 0.12);
+
+  --accent:        #2162A1;
+  --accent-strong: #004B91;
+  --accent-hover:  #1A4F80;
+  --accent-subtle: rgba(33, 98, 161, 0.18);
+  --accent-glow:   rgba(33, 98, 161, 0.45);
+
+  --highlight:     #FFD814;
+  --amber:         #F08804;
+  --amber-dark:    #C96F00;
+  --success:       #238636;
+  --success-bg:    rgba(35, 134, 54, 0.18);
+  --error:         #E5534B;
+  --error-bg:      rgba(229, 83, 75, 0.18);
+  --warning:       #F08804;
+  --warning-bg:    rgba(240, 136, 4, 0.15);
+
+  --text-primary:   #F0F6FC;
+  --text-secondary: #C9D1D9;
+  --text-muted:     #8B949E;
+  --text-faint:     #484F58;
+  --text-inverse:   #0A0D10;
+
+  --nav-bg:        rgba(10, 13, 16, 0.82);
+  --nav-blur:      blur(24px);
+  --card-bg:       rgba(17, 22, 29, 0.95);
+  --card-hover:    #18202A;
+  --input-bg:      #18202A;
+  --input-border:  rgba(255, 255, 255, 0.12);
+  --input-focus:   #2162A1;
+  --overlay:       rgba(0, 0, 0, 0.82);
+  
+  --shadow-sm:     0 2px 4px rgba(0,0,0,0.3);
+  --shadow-md:     0 8px 24px rgba(0,0,0,0.5);
+  --shadow-lg:     0 16px 48px rgba(0,0,0,0.7);
+  --shadow-accent: 0 0 35px rgba(33, 98, 161, 0.35);
+  --shadow-gold:   0 0 30px rgba(255, 216, 20, 0.25);
+
+  --gradient-hero: radial-gradient(ellipse 70% 55% at 50% 0%, #152233 0%, #0A0D10 100%);
+  --gradient-accent: linear-gradient(135deg, #004B91 0%, #2162A1 100%);
+  --gradient-gold: linear-gradient(135deg, #F08804 0%, #FFD814 100%);
+  --gradient-card: linear-gradient(145deg, rgba(24, 32, 42, 0.9), rgba(17, 22, 29, 0.95));
+  --gradient-shine: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.2) 50%, transparent 65%);
+
+  --radius-sm:     6px;
+  --radius-md:     12px;
+  --radius-lg:     18px;
+  --radius-xl:     28px;
+  --radius-full:   9999px;
+
+  --font-body:     'Inter', system-ui, sans-serif;
+  --font-display:  'Space Grotesk', system-ui, sans-serif;
+  --font-serif:    'Fraunces', Georgia, serif;
+}
+
+/* ─── Light Theme ─────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:            #F8F9FA;
+  --bg-secondary:  #FFFFFF;
+  --surface:       #FFFFFF;
+  --surface-2:     #F1F3F5;
+  --surface-3:     #E9ECEF;
+  --border:        rgba(0, 0, 0, 0.08);
+  --border-light:  rgba(0, 0, 0, 0.04);
+  --border-glass:  rgba(0, 0, 0, 0.1);
+
+  --accent:        #2162A1;
+  --accent-strong: #004B91;
+  --accent-hover:  #1A4F80;
+  --accent-subtle: rgba(33, 98, 161, 0.1);
+  --accent-glow:   rgba(33, 98, 161, 0.2);
+
+  --highlight:     #E5A800;
+  --amber:         #D97706;
+  --amber-dark:    #B45309;
+  --success:       #198754;
+  --success-bg:    rgba(25, 135, 84, 0.12);
+  --error:         #DC3545;
+  --error-bg:      rgba(220, 53, 69, 0.1);
+  --warning:       #D97706;
+  --warning-bg:    rgba(217, 119, 6, 0.12);
+
+  --text-primary:   #1A1D20;
+  --text-secondary: #495057;
+  --text-muted:     #6C757D;
+  --text-faint:     #ADB5BD;
+  --text-inverse:   #FFFFFF;
+
+  --nav-bg:        rgba(255, 255, 255, 0.88);
+  --nav-blur:      blur(24px);
+  --card-bg:       #FFFFFF;
+  --card-hover:    #F8F9FA;
+  --input-bg:      #FFFFFF;
+  --input-border:  #DEE2E6;
+  --input-focus:   #2162A1;
+  --overlay:       rgba(0, 0, 0, 0.5);
+
+  --shadow-sm:     0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:     0 12px 36px rgba(0,0,0,0.12);
+  --shadow-accent: 0 4px 20px rgba(33, 98, 161, 0.15);
+
+  --gradient-hero: radial-gradient(ellipse 70% 55% at 50% 0%, #E6EFF8 0%, #F8F9FA 100%);
+  --gradient-card: linear-gradient(145deg, #FFFFFF, #F8F9FA);
+}
+
+/* ─── Global Reset & Base Typography ─────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-body);
+  background-color: var(--bg);
+  color: var(--text-primary);
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  position: relative;
+}
+
+/* Filmic ambient grain texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* ─── Luxury Editorial Photo Color Grading ────────────────────────────── */
+.editorial-img {
+  filter: contrast(1.04) saturate(1.03) brightness(0.98);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
+}
+
+.editorial-img:hover {
+  filter: contrast(1.07) saturate(1.08) brightness(1.02);
+}
+
+/* Ken Burns Slow Drifting Zoom */
+@keyframes kenBurns {
+  0%   { transform: scale(1.0); }
+  50%  { transform: scale(1.04) translateY(-4px); }
+  100% { transform: scale(1.0); }
+}
+
+.animate-kenburns {
+  animation: kenBurns 14s ease-in-out infinite alternate;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.35rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--highlight);
+  outline-offset: 3px;
+}
+
+.btn-primary {
+  background: var(--gradient-accent);
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(33, 98, 161, 0.3);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 8px 24px rgba(33, 98, 161, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Luxury Gold Button with animated shimmer sweep */
+.btn-gold {
+  background: var(--gradient-gold);
+  color: #0A0D10;
+  font-weight: 800;
+  box-shadow: 0 4px 20px rgba(240, 136, 4, 0.35);
+}
+
+.btn-gold::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(30deg);
+  transition: all 0.75s ease;
+  pointer-events: none;
+}
+
+.btn-gold:hover::after {
+  left: 140%;
+}
+
+.btn-gold:hover {
+  box-shadow: 0 8px 28px rgba(240, 136, 4, 0.5), var(--shadow-gold);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-3);
+  border-color: var(--border-glass);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.btn-danger {
+  background: var(--error-bg);
+  color: var(--error);
+  border-color: rgba(229, 83, 75, 0.3);
+}
+
+.btn-danger:hover {
+  background: var(--error);
+  color: #FFFFFF;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-lg {
+  padding: 0.9rem 2rem;
+  font-size: 1rem;
+  border-radius: var(--radius-md);
+}
+
+/* ─── Glass & Card System ─────────────────────────────────────────────── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.card-glass {
+  background: rgba(17, 22, 29, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+}
+
+.card-hover:hover {
+  border-color: rgba(33, 98, 161, 0.4);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md), var(--shadow-accent);
+}
+
+/* ─── Badges ──────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badge-sale {
+  background: var(--gradient-gold);
+  color: #0A0D10;
+  box-shadow: 0 2px 8px rgba(240, 136, 4, 0.3);
+}
+
+.badge-stock {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge-low {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid rgba(229, 83, 75, 0.3);
+  animation: pulseUrgent 2.2s infinite ease-in-out;
+}
+
+@keyframes pulseUrgent {
+  0%   { box-shadow: 0 0 0 0 rgba(229, 83, 75, 0.4); }
+  70%  { box-shadow: 0 0 0 7px rgba(229, 83, 75, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 83, 75, 0); }
+}
+
+.badge-metro {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1px solid rgba(33, 98, 161, 0.25);
+}
+
+/* ─── Forms ───────────────────────────────────────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+input, select, textarea {
+  font-family: var(--font-body);
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.95rem;
+  font-size: 0.875rem;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+/* ─── Skeleton Loading ────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonWave 1.6s infinite ease-in-out;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeletonWave {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Container ───────────────────────────────────────────────────────── */
+.container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+@media (min-width: 1536px) {
+  .container { max-width: 1440px; }
+}

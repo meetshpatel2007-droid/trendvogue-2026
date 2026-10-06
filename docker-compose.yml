@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: trendvogue_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: trendvogue
+      POSTGRES_PASSWORD: trendvogue
+      POSTGRES_DB: trend_vogue
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
