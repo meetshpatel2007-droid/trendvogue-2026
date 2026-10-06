@@ -85,8 +85,8 @@ export function Navbar() {
   const handleLogout = async () => {
     await logout();
     toast.success("Logged out successfully");
-    router.push("/");
     setUserOpen(false);
+    window.location.assign("/"); // full load drops cached logged-in pages
   };
 
   const handleSearch = (e: React.FormEvent) => {

@@ -709,7 +709,7 @@ These were found by reviewing the code and are listed so the report can describe
 | # | Area | Issue | Effect |
 | :--- | :--- | :--- | :--- |
 | 1 | Cart → checkout | The cart lives only in the browser (`useCartStore`, `localStorage`). No page calls `/api/cart`, but `POST /api/orders` reads the cart from the **database**. | Checkout fails with "Your cart is empty" unless the cart is synced to the server first. |
-| 2 | Session restore | `useAuthStore.fetchMe()` reads `data.user`, but the API returns `{ success, data: { user } }`. | After a page reload the UI may show the user as logged out even though the cookie is valid (middleware still protects routes correctly). |
+| 2 | Login redirect (fixed) | Previously, `router.push` after login could reuse pages prefetched while logged out (cached redirects to `/login`), and `fetchMe()` read the wrong response field. Login, register and logout now do a full page load, `fetchMe()` reads `data.user` correctly, and the `?redirect=` parameter only accepts same-site paths. | Resolved. |
 | 3 | Admin dashboard | The 7-day revenue SQL in `/api/admin/stats` uses `created_at` and `total_amount`, but the real columns are `"createdAt"` and `"totalAmount"`. | The stats endpoint errors, so the dashboard cannot load. |
 | 4 | Token refresh | A refresh token is issued, but no endpoint uses it. | Users are effectively logged out after 15 minutes. |
 | 5 | Wishlist sync | The wishlist is client-only (`localStorage`) and never synced with `/api/wishlist`. "Move to Cart" always uses size M and a placeholder stock of 50. | Wishlist is lost on another device; size may be wrong. |

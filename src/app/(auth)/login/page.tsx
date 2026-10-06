@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
@@ -12,9 +12,10 @@ import { loginSchema, type LoginInput } from "@/server/schemas/auth.schema";
 import { useAuthStore } from "@/store/auth.store";
 
 function LoginForm() {
-  const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirect     = searchParams.get("redirect") ?? "/";
+  // Only allow same-site paths ("/orders"), never "https://…" or "//evil.com"
+  const redirectParam = searchParams.get("redirect") ?? "/";
+  const redirect      = redirectParam.startsWith("/") && !redirectParam.startsWith("//") ? redirectParam : "/";
   const fetchMe      = useAuthStore((s) => s.fetchMe);
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,9 @@ function LoginForm() {
 
       await fetchMe();
       toast.success(`Welcome back, ${json.data.user.name}! 👋`);
-      router.push(json.data.user.role === "ADMIN" ? "/admin" : redirect);
+      // Full page load, not router.push: the client router cache may still hold
+      // pages prefetched while logged out (cached middleware redirects to /login).
+      window.location.assign(json.data.user.role === "ADMIN" ? "/admin" : redirect);
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {

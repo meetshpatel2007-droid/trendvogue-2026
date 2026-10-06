@@ -34,8 +34,8 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     try {
       const res = await fetch("/api/auth/me", { credentials: "include" });
       if (res.ok) {
-        const data = await res.json();
-        set({ user: data.user, isLoading: false, isHydrated: true });
+        const json = await res.json();
+        set({ user: json.data?.user ?? null, isLoading: false, isHydrated: true });
       } else {
         set({ user: null, isLoading: false, isHydrated: true });
       }

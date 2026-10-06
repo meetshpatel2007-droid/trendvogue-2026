@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
@@ -12,7 +11,6 @@ import { registerSchema, type RegisterInput } from "@/server/schemas/auth.schema
 import { useAuthStore } from "@/store/auth.store";
 
 export default function RegisterPage() {
-  const router   = useRouter();
   const fetchMe  = useAuthStore((s) => s.fetchMe);
   const [showPw, setShowPw]     = useState(false);
   const [showCPw, setShowCPw]   = useState(false);
@@ -36,7 +34,7 @@ export default function RegisterPage() {
       if (!res.ok) { toast.error(json.error ?? "Registration failed"); return; }
       await fetchMe();
       toast.success("Account created! Welcome to Trend Vogue 🎉");
-      router.push("/");
+      window.location.assign("/"); // full load so no logged-out cache survives
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {

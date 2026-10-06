@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 const NAV_ITEMS = [
@@ -25,12 +24,11 @@ export function AdminSidebar() {
   const pathname           = usePathname();
   const { user, logout }   = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
-  const router             = useRouter();
 
   const handleLogout = async () => {
     await logout();
     toast.success("Logged out");
-    router.push("/");
+    window.location.assign("/"); // full load drops cached admin pages
   };
 
   const isActive = (href: string) =>
