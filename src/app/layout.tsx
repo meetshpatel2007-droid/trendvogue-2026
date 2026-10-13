@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "../styles/globals.css";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { AuthInitializer } from "@/components/layout/AuthInitializer";
+import { SecurityLockdown } from "@/components/layout/SecurityLockdown";
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -64,21 +65,26 @@ export default function RootLayout({
         className={`${inter.variable} ${spaceGrotesk.variable}`}
         suppressHydrationWarning
       >
-        <ThemeProvider>
-          <AuthInitializer />
-          {children}
-          <Toaster
-            position="top-right"
-            richColors
-            expand
-            closeButton
-            toastOptions={{
-              style: {
-                fontFamily: "var(--font-body)",
-              },
-            }}
-          />
-        </ThemeProvider>
+        {/* Security lockdown: `inert` blocks clicks, focus and keyboard on the page
+            behind the warning. Remove this wrapper and <SecurityLockdown /> to lift it. */}
+        <div inert style={{ display: "contents" }}>
+          <ThemeProvider>
+            <AuthInitializer />
+            {children}
+            <Toaster
+              position="top-right"
+              richColors
+              expand
+              closeButton
+              toastOptions={{
+                style: {
+                  fontFamily: "var(--font-body)",
+                },
+              }}
+            />
+          </ThemeProvider>
+        </div>
+        <SecurityLockdown />
       </body>
     </html>
   );
